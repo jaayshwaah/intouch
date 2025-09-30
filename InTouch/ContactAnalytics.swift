@@ -32,16 +32,51 @@ final class ContactAnalytics {
     // MARK: - Contact Event Tracking
     
     struct ContactEvent: Codable, Identifiable {
-        let id = UUID()
+        let id: UUID
         let contactId: String
         let contactName: String
         let type: ContactType
         let timestamp: Date
-        
+
         enum ContactType: String, Codable, CaseIterable {
             case call = "call"
             case text = "text"
             case spin = "spin"
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case contactId
+            case contactName
+            case type
+            case timestamp
+        }
+
+        init(id: UUID = UUID(), contactId: String, contactName: String, type: ContactType, timestamp: Date) {
+            self.id = id
+            self.contactId = contactId
+            self.contactName = contactName
+            self.type = type
+            self.timestamp = timestamp
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+            let contactId = try container.decode(String.self, forKey: .contactId)
+            let contactName = try container.decode(String.self, forKey: .contactName)
+            let type = try container.decode(ContactType.self, forKey: .type)
+            let timestamp = try container.decode(Date.self, forKey: .timestamp)
+            self.init(id: id, contactId: contactId, contactName: contactName, type: type, timestamp: timestamp)
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(id, forKey: .id)
+            try container.encode(contactId, forKey: .contactId)
+            try container.encode(contactName, forKey: .contactName)
+            try container.encode(type, forKey: .type)
+            try container.encode(timestamp, forKey: .timestamp)
         }
     }
     
@@ -396,3 +431,4 @@ final class ContactAnalytics {
         }
     }
 }
+

@@ -24,7 +24,7 @@ struct LiquidGlassBackground: View {
                 endRadius: 900
             )
             .ignoresSafeArea()
-            .offset(x: backgroundOffset * 0.3, y: backgroundOffset * 0.2)
+            .offset(x: backgroundOffset * CGFloat(0.3), y: backgroundOffset * CGFloat(0.2))
             .animation(.easeInOut(duration: 20).repeatForever(autoreverses: true), value: backgroundOffset)
 
             // Additional gradient overlay for depth with movement
@@ -38,14 +38,14 @@ struct LiquidGlassBackground: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            .offset(x: -backgroundOffset * 0.2, y: backgroundOffset * 0.1)
+            .offset(x: -backgroundOffset * CGFloat(0.2), y: backgroundOffset * CGFloat(0.1))
             .animation(.easeInOut(duration: 25).repeatForever(autoreverses: true), value: backgroundOffset)
 
             // Enhanced ambient blobs with individual slow movements
             Circle().fill(.ultraThinMaterial)
                 .frame(width: 400, height: 400)
                 .blur(radius: 40)
-                .offset(x: -160 + blobOffset1 * 0.5, y: -300 + blobOffset1 * 0.3)
+                .offset(x: -160.0 + blobOffset1 * CGFloat(0.5), y: -300.0 + blobOffset1 * CGFloat(0.3))
                 .offset(x: animateGradient ? 20 : -20, y: animateGradient ? 10 : -10)
                 .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animateGradient)
                 .animation(.easeInOut(duration: 30).repeatForever(autoreverses: true), value: blobOffset1)
@@ -53,7 +53,7 @@ struct LiquidGlassBackground: View {
             Circle().fill(.thinMaterial)
                 .frame(width: 200, height: 200)
                 .blur(radius: 25)
-                .offset(x: 200 + blobOffset2 * 0.3, y: -200 + blobOffset2 * 0.4)
+                .offset(x: 200.0 + blobOffset2 * CGFloat(0.3), y: -200.0 + blobOffset2 * CGFloat(0.4))
                 .offset(x: animateGradient ? -15 : 15, y: animateGradient ? 20 : -20)
                 .animation(.easeInOut(duration: 6).repeatForever(autoreverses: true), value: animateGradient)
                 .animation(.easeInOut(duration: 35).repeatForever(autoreverses: true), value: blobOffset2)
@@ -68,9 +68,9 @@ struct LiquidGlassBackground: View {
                     endPoint: .bottomTrailing)
                 )
                 .frame(width: 580, height: 360)
-                .rotationEffect(.degrees(-12 + blobOffset3 * 0.1))
+                .rotationEffect(.degrees(Double(-12.0 + blobOffset3 * CGFloat(0.1))))
                 .blur(radius: 30)
-                .offset(x: 180 + blobOffset3 * 0.4, y: 280 + blobOffset3 * 0.2)
+                .offset(x: 180.0 + blobOffset3 * CGFloat(0.4), y: 280.0 + blobOffset3 * CGFloat(0.2))
                 .offset(x: animateGradient ? 30 : -30, y: animateGradient ? -15 : 15)
                 .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animateGradient)
                 .animation(.easeInOut(duration: 40).repeatForever(autoreverses: true), value: blobOffset3)
@@ -223,8 +223,16 @@ struct GlassChip: View {
     var body: some View {
         Text(text)
             .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.white)
             .padding(.vertical, 6).padding(.horizontal, 10)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1))
+            .background(
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        Capsule()
+                            .stroke(.white.opacity(0.4), lineWidth: 1)
+                    )
+            )
+            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
     }
 }

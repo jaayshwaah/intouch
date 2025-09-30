@@ -165,8 +165,17 @@ struct RandomContactView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(.white.opacity(0.7))
-                            .background(Circle().fill(.ultraThinMaterial).frame(width: 32, height: 32))
+                            .foregroundStyle(.white)
+                            .background(
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                                    )
+                                    .frame(width: 32, height: 32)
+                            )
+                            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
                     }
                 }
 
@@ -200,9 +209,10 @@ struct RandomContactView: View {
                             HStack(spacing: 8) {
                                 if let label = e.label { GlassChip(text: label.capitalized) }
                                 Text(format(phone: e.number))
-                                    .foregroundStyle(.white.opacity(0.9))
-                                    .font(.subheadline)
+                                    .foregroundStyle(.white)
+                                    .font(.subheadline.weight(.medium))
                                     .lineLimit(1)
+                                    .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
                             }
                         }
                     }
@@ -215,16 +225,18 @@ struct RandomContactView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(c.fullName)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.white.opacity(0.98))
+                .foregroundStyle(.white)
                 .lineLimit(2)                 // wrap instead of overflow
                 .minimumScaleFactor(0.85)
+                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
 
             if let p = primary {
                 HStack(spacing: 8) {
                     Text(format(phone: p.number))
-                        .font(.headline)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
                         .lineLimit(1)
+                        .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
                     if let label = p.label {
                         GlassChip(text: label.capitalized)
                     }
@@ -396,9 +408,10 @@ struct SmartSuggestionBanner: View {
                 .foregroundStyle(suggestionColor)
             
             Text(suggestion.message)
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.leading)
+                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
             
             Spacer()
         }
@@ -406,12 +419,13 @@ struct SmartSuggestionBanner: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(suggestionColor.opacity(0.15))
+                .fill(suggestionColor.opacity(0.2))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(suggestionColor.opacity(0.3), lineWidth: 1)
+                        .stroke(suggestionColor.opacity(0.5), lineWidth: 1.5)
                 )
         )
+        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
     }
     
     private var suggestionIcon: String {
