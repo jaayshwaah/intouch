@@ -24,8 +24,8 @@ struct LiquidGlassBackground: View {
                 endRadius: 900
             )
             .ignoresSafeArea()
-            .offset(x: backgroundOffset * CGFloat(0.3), y: backgroundOffset * CGFloat(0.2))
-            .animation(.easeInOut(duration: 20).repeatForever(autoreverses: true), value: backgroundOffset)
+            .offset(x: backgroundOffset * CGFloat(0.05), y: backgroundOffset * CGFloat(0.03))
+            .animation(.easeInOut(duration: 40).repeatForever(autoreverses: true), value: backgroundOffset)
 
             // Additional gradient overlay for depth with movement
             LinearGradient(
@@ -38,14 +38,14 @@ struct LiquidGlassBackground: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            .offset(x: -backgroundOffset * CGFloat(0.2), y: backgroundOffset * CGFloat(0.1))
-            .animation(.easeInOut(duration: 25).repeatForever(autoreverses: true), value: backgroundOffset)
+            .offset(x: -backgroundOffset * CGFloat(0.03), y: backgroundOffset * CGFloat(0.02))
+            .animation(.easeInOut(duration: 45).repeatForever(autoreverses: true), value: backgroundOffset)
 
             // Enhanced ambient blobs with individual slow movements
             Circle().fill(.ultraThinMaterial)
                 .frame(width: 400, height: 400)
                 .blur(radius: 40)
-                .offset(x: -160.0 + blobOffset1 * CGFloat(0.5), y: -300.0 + blobOffset1 * CGFloat(0.3))
+                .offset(x: -160.0 + blobOffset1 * CGFloat(0.1), y: -300.0 + blobOffset1 * CGFloat(0.08))
                 .offset(x: animateGradient ? 20 : -20, y: animateGradient ? 10 : -10)
                 .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animateGradient)
                 .animation(.easeInOut(duration: 30).repeatForever(autoreverses: true), value: blobOffset1)
@@ -53,7 +53,7 @@ struct LiquidGlassBackground: View {
             Circle().fill(.thinMaterial)
                 .frame(width: 200, height: 200)
                 .blur(radius: 25)
-                .offset(x: 200.0 + blobOffset2 * CGFloat(0.3), y: -200.0 + blobOffset2 * CGFloat(0.4))
+                .offset(x: 200.0 + blobOffset2 * CGFloat(0.08), y: -200.0 + blobOffset2 * CGFloat(0.06))
                 .offset(x: animateGradient ? -15 : 15, y: animateGradient ? 20 : -20)
                 .animation(.easeInOut(duration: 6).repeatForever(autoreverses: true), value: animateGradient)
                 .animation(.easeInOut(duration: 35).repeatForever(autoreverses: true), value: blobOffset2)
@@ -68,9 +68,9 @@ struct LiquidGlassBackground: View {
                     endPoint: .bottomTrailing)
                 )
                 .frame(width: 580, height: 360)
-                .rotationEffect(.degrees(Double(-12.0 + blobOffset3 * CGFloat(0.1))))
+                .rotationEffect(.degrees(Double(-12.0 + blobOffset3 * CGFloat(0.02))))
                 .blur(radius: 30)
-                .offset(x: 180.0 + blobOffset3 * CGFloat(0.4), y: 280.0 + blobOffset3 * CGFloat(0.2))
+                .offset(x: 180.0 + blobOffset3 * CGFloat(0.06), y: 280.0 + blobOffset3 * CGFloat(0.04))
                 .offset(x: animateGradient ? 30 : -30, y: animateGradient ? -15 : 15)
                 .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animateGradient)
                 .animation(.easeInOut(duration: 40).repeatForever(autoreverses: true), value: blobOffset3)
@@ -222,7 +222,7 @@ struct GlassChip: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.subheadline.weight(.semibold))
+            .font(.subheadline.weight(.bold))
             .foregroundStyle(.white)
             .padding(.vertical, 6).padding(.horizontal, 10)
             .background(
@@ -230,9 +230,10 @@ struct GlassChip: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         Capsule()
-                            .stroke(.white.opacity(0.4), lineWidth: 1)
+                            .stroke(.white.opacity(0.6), lineWidth: 1.5)
                     )
             )
-            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+            .shadow(color: .black.opacity(0.4), radius: 3, y: 1.5)
+            .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
     }
 }

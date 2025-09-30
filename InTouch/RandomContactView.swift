@@ -210,9 +210,10 @@ struct RandomContactView: View {
                                 if let label = e.label { GlassChip(text: label.capitalized) }
                                 Text(format(phone: e.number))
                                     .foregroundStyle(.white)
-                                    .font(.subheadline.weight(.medium))
+                                    .font(.subheadline.weight(.semibold))
                                     .lineLimit(1)
-                                    .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+                                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                                    .shadow(color: .black.opacity(0.2), radius: 3, y: 1.5)
                             }
                         }
                     }
@@ -228,15 +229,17 @@ struct RandomContactView: View {
                 .foregroundStyle(.white)
                 .lineLimit(2)                 // wrap instead of overflow
                 .minimumScaleFactor(0.85)
-                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
+                .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
+                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
 
             if let p = primary {
                 HStack(spacing: 8) {
                     Text(format(phone: p.number))
-                        .font(.headline.weight(.semibold))
+                        .font(.headline.weight(.bold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                        .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+                        .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                        .shadow(color: .black.opacity(0.2), radius: 3, y: 1.5)
                     if let label = p.label {
                         GlassChip(text: label.capitalized)
                     }
@@ -408,10 +411,11 @@ struct SmartSuggestionBanner: View {
                 .foregroundStyle(suggestionColor)
             
             Text(suggestion.message)
-                .font(.subheadline.weight(.semibold))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.leading)
-                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
+                .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
+                .shadow(color: .black.opacity(0.3), radius: 3, y: 1.5)
             
             Spacer()
         }
