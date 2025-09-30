@@ -140,11 +140,21 @@ final class SubscriptionManager {
     func getYearlySavings() -> String? {
         guard let monthly = getMonthlyProduct(),
               let yearly = getYearlyProduct() else { return nil }
-        
-        let monthlyYearly = monthly.price * 12
+
+        // Compute the cost of paying monthly for a year
+        let monthlyYearly = monthly.price * Decimal(12)
+        // Avoid division by zero or negative/zero pricing edge cases
+        guard monthlyYearly > 0 else { return nil }
+
+        // Savings is how much cheaper the yearly plan is compared to 12 months of monthly
         let savings = monthlyYearly - yearly.price
-        let percentage = Int((savings / monthlyYearly) * 100)
-        
+        // If there's no savings (or yearly is more expensive), don't show a savings label
+        guard savings > 0 else { return nil }
+
+        // Calculate percentage savings as an integer
+        let ratio = (savings / monthlyYearly) * Decimal(100)
+        let percentage = NSDecimalNumber(decimal: ratio).intValue
+
         return "Save \(percentage)%"
     }
 }

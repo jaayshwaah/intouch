@@ -342,7 +342,8 @@ struct PricingCard: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = product.priceFormatStyle.locale
-        return formatter.string(from: product.price) ?? product.displayPrice
+        let number = NSDecimalNumber(decimal: product.price)
+        return formatter.string(from: number) ?? product.displayPrice
     }
 }
 

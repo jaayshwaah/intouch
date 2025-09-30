@@ -8,6 +8,7 @@ struct RandomContactView: View {
     @State private var showResetSeenAlert = false
     @State private var showSMS = false
     @State private var showPaywall = false
+    @State private var showAnalytics = false
     @State private var cardFlip = false
     @State private var isSpinning = false
     @State private var spinAngle: Double = 0
@@ -59,6 +60,9 @@ struct RandomContactView: View {
 
                             controls(for: c)
                                 .centerColumnAdaptive()
+                            
+                            smartSuggestions
+                                .centerColumnAdaptive()
                         } else {
                             GlassCard {
                                 VStack(spacing: 10) {
@@ -88,6 +92,9 @@ struct RandomContactView: View {
         }
         .sheet(isPresented: $showPaywall) {
             PaywallView()
+        }
+        .sheet(isPresented: $showAnalytics) {
+            AnalyticsView()
         }
     }
 
@@ -313,37 +320,113 @@ struct RandomContactView: View {
         return d
     }
 
+    // MARK: - Smart Suggestions
+    
+    private var smartSuggestions: some View {
+        let analytics = ContactAnalytics.shared
+        let suggestions = analytics.getSmartSuggestions()
+        
+        if suggestions.isEmpty {
+            return AnyView(EmptyView())
+        }
+        
+        return AnyView(
+            VStack(spacing: 8) {
+                ForEach(suggestions.prefix(2)) { suggestion in
+                    SmartSuggestionBanner(suggestion: suggestion)
+                }
+            }
+        )
+    }
+    
     private var topToolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
-            Menu {
-                if subscriptionManager.isSubscribed {
-                    Button {
-                        // Open subscription management
-                        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                            UIApplication.shared.open(url)
-                        }
-                    } label: {
-                        Label("Manage Subscription", systemImage: "crown.fill")
-                    }
-                } else {
-                    Button { showPaywall = true } label: {
-                        Label("Upgrade to Premium", systemImage: "crown.fill")
-                    }
+            HStack(spacing: 16) {
+                Button {
+                    showAnalytics = true
+                } label: {
+                    Image(systemName: "chart.bar.fill")
+                        .foregroundStyle(.white)
                 }
                 
-                Toggle(isOn: Binding(get: { vm.noRepeatsEver }, set: { vm.setNoRepeatsEver($0) })) {
-                    Label("No repeats (ever)", systemImage: "infinity.circle")
+                Menu {
+                    if subscriptionManager.isSubscribed {
+                        Button {
+                            // Open subscription management
+                            if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            Label("Manage Subscription", systemImage: "crown.fill")
+                        }
+                    } else {
+                        Button { showPaywall = true } label: {
+                            Label("Upgrade to Premium", systemImage: "crown.fill")
+                        }
+                    }
+                    
+                    Toggle(isOn: Binding(get: { vm.noRepeatsEver }, set: { vm.setNoRepeatsEver($0) })) {
+                        Label("No repeats (ever)", systemImage: "infinity.circle")
+                    }
+                    Button { showManage = true } label: {
+                        Label("Manage Exclusions", systemImage: "person.crop.circle.badge.xmark")
+                    }
+                    Divider()
+                    Button(role: .destructive) { showResetSeenAlert = true } label: {
+                        Label("Clear 'Seen' History", systemImage: "clock.arrow.circlepath")
+                    }
+                } label: {
+                    Image(systemName: "gearshape").foregroundStyle(.white)
                 }
-                Button { showManage = true } label: {
-                    Label("Manage Exclusions", systemImage: "person.crop.circle.badge.xmark")
-                }
-                Divider()
-                Button(role: .destructive) { showResetSeenAlert = true } label: {
-                    Label("Clear 'Seen' History", systemImage: "clock.arrow.circlepath")
-                }
-            } label: {
-                Image(systemName: "gearshape").foregroundStyle(.white)
             }
+        }
+    }
+}
+
+// MARK: - Smart Suggestion Banner
+
+struct SmartSuggestionBanner: View {
+    let suggestion: ContactAnalytics.SmartSuggestion
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: suggestionIcon)
+                .font(.title3)
+                .foregroundStyle(suggestionColor)
+            
+            Text(suggestion.message)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(suggestionColor.opacity(0.15))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(suggestionColor.opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+    
+    private var suggestionIcon: String {
+        switch suggestion.type {
+        case .longTimeNoSee: return "clock.fill"
+        case .maintainStreak: return "flame.fill"
+        case .monthlyGoal: return "target"
+        case .birthday: return "gift.fill"
+        }
+    }
+    
+    private var suggestionColor: Color {
+        switch suggestion.priority {
+        case .high: return .red
+        case .medium: return .orange
+        case .low: return .blue
         }
     }
 }

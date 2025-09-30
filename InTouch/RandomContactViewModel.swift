@@ -5,6 +5,7 @@ import UIKit
 @Observable
 final class RandomContactViewModel {
     private let fetcher = ContactFetcher()
+    private let analytics = ContactAnalytics.shared
 
     // Contacts and selection bag
     private(set) var contacts: [ContactRecord] = []
@@ -77,6 +78,10 @@ final class RandomContactViewModel {
 
         if let next = contacts.first(where: { $0.id == nextId }) {
             current = next
+            
+            // Track spin analytics
+            analytics.recordContact(next.id, name: next.fullName, type: .spin)
+            
             if noRepeatsEver {
                 seenIDs.insert(nextId)
                 persistSeen()
@@ -94,12 +99,22 @@ final class RandomContactViewModel {
         if let url = URL(string: "tel://\(number)"),
            UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
+            
+            // Track analytics
+            if let contact = current {
+                analytics.recordContact(contact.id, name: contact.fullName, type: .call)
+            }
         }
     }
     func textFallbackURL(number: String) {
         if let url = URL(string: "sms:\(number)"),
            UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
+            
+            // Track analytics
+            if let contact = current {
+                analytics.recordContact(contact.id, name: contact.fullName, type: .text)
+            }
         }
     }
 
