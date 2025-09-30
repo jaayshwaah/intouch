@@ -104,11 +104,19 @@ struct RandomContactView: View {
                 let remaining = subscriptionManager.remainingFreeSpins()
                 if remaining > 0 {
                     Text("\(remaining) free spins remaining today")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.8))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.black)
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(.white.opacity(0.95))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
                 } else {
                     Button {
                         showPaywall = true
@@ -120,7 +128,7 @@ struct RandomContactView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                         .background(
                             LinearGradient(colors: [
                                 Color.blue,
@@ -128,6 +136,7 @@ struct RandomContactView: View {
                             ], startPoint: .leading, endPoint: .trailing),
                             in: Capsule()
                         )
+                        .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
                     }
                 }
             }
