@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import UIKit
 
+@MainActor
 @Observable
 final class RandomContactViewModel {
     private let fetcher = ContactFetcher()
@@ -95,6 +96,7 @@ final class RandomContactViewModel {
     func primaryPhone(for c: ContactRecord?) -> LabeledPhone? { c?.phones.first }
 
     // Actions
+    @MainActor
     func call(number: String) {
         if let url = URL(string: "tel://\(number)"),
            UIApplication.shared.canOpenURL(url) {
@@ -106,6 +108,7 @@ final class RandomContactViewModel {
             }
         }
     }
+    @MainActor
     func textFallbackURL(number: String) {
         if let url = URL(string: "sms:\(number)"),
            UIApplication.shared.canOpenURL(url) {
@@ -187,6 +190,7 @@ final class RandomContactViewModel {
     private func persistSeen()      { defaults.set(Array(seenIDs), forKey: seenKey) }
 
     // Settings deep link
+    @MainActor
     func openAppSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString),
               UIApplication.shared.canOpenURL(url) else { return }
@@ -199,3 +203,4 @@ final class RandomContactViewModel {
         rebuildRemainingIfNeeded()
     }
 }
+

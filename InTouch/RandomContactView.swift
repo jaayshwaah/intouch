@@ -332,8 +332,9 @@ struct RandomContactView: View {
         
         return AnyView(
             VStack(spacing: 8) {
-                ForEach(suggestions.prefix(2)) { suggestion in
-                    SmartSuggestionBanner(suggestion: suggestion)
+                let top = Array(suggestions.prefix(2))
+                ForEach(top.indices, id: \.self) { idx in
+                    SmartSuggestionBanner(suggestion: top[idx])
                 }
             }
         )

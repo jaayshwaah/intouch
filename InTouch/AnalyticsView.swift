@@ -194,7 +194,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
                 } else {
-                    ForEach(rareContacts.prefix(3)) { contact in
+                    ForEach(Array(rareContacts.prefix(3).enumerated()), id: \.offset) { _, contact in
                         RareContactRow(contact: contact)
                     }
                 }
@@ -227,7 +227,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
                 } else {
-                    ForEach(suggestions.prefix(3)) { suggestion in
+                    ForEach(Array(suggestions.prefix(3).enumerated()), id: \.offset) { _, suggestion in
                         SuggestionRow(suggestion: suggestion)
                     }
                 }
