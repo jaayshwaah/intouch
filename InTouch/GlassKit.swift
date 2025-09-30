@@ -3,10 +3,14 @@ import SwiftUI
 // MARK: - Liquid glass background
 struct LiquidGlassBackground: View {
     @State private var animateGradient = false
+    @State private var backgroundOffset: CGFloat = 0
+    @State private var blobOffset1: CGFloat = 0
+    @State private var blobOffset2: CGFloat = 0
+    @State private var blobOffset3: CGFloat = 0
     
     var body: some View {
         ZStack {
-            // Enhanced gradient background
+            // Enhanced gradient background with subtle movement
             RadialGradient(
                 colors: [
                     Color(.systemTeal).opacity(0.4),
@@ -20,8 +24,10 @@ struct LiquidGlassBackground: View {
                 endRadius: 900
             )
             .ignoresSafeArea()
+            .offset(x: backgroundOffset * 0.3, y: backgroundOffset * 0.2)
+            .animation(.easeInOut(duration: 20).repeatForever(autoreverses: true), value: backgroundOffset)
 
-            // Additional gradient overlay for depth
+            // Additional gradient overlay for depth with movement
             LinearGradient(
                 colors: [
                     Color(.systemBlue).opacity(0.1),
@@ -32,21 +38,25 @@ struct LiquidGlassBackground: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
+            .offset(x: -backgroundOffset * 0.2, y: backgroundOffset * 0.1)
+            .animation(.easeInOut(duration: 25).repeatForever(autoreverses: true), value: backgroundOffset)
 
-            // Enhanced ambient blobs
+            // Enhanced ambient blobs with individual slow movements
             Circle().fill(.ultraThinMaterial)
                 .frame(width: 400, height: 400)
                 .blur(radius: 40)
-                .offset(x: -160, y: -300)
+                .offset(x: -160 + blobOffset1 * 0.5, y: -300 + blobOffset1 * 0.3)
                 .offset(x: animateGradient ? 20 : -20, y: animateGradient ? 10 : -10)
                 .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animateGradient)
+                .animation(.easeInOut(duration: 30).repeatForever(autoreverses: true), value: blobOffset1)
 
             Circle().fill(.thinMaterial)
                 .frame(width: 200, height: 200)
                 .blur(radius: 25)
-                .offset(x: 200, y: -200)
+                .offset(x: 200 + blobOffset2 * 0.3, y: -200 + blobOffset2 * 0.4)
                 .offset(x: animateGradient ? -15 : 15, y: animateGradient ? 20 : -20)
                 .animation(.easeInOut(duration: 6).repeatForever(autoreverses: true), value: animateGradient)
+                .animation(.easeInOut(duration: 35).repeatForever(autoreverses: true), value: blobOffset2)
 
             RoundedRectangle(cornerRadius: 250)
                 .fill(
@@ -58,14 +68,32 @@ struct LiquidGlassBackground: View {
                     endPoint: .bottomTrailing)
                 )
                 .frame(width: 580, height: 360)
-                .rotationEffect(.degrees(-12))
+                .rotationEffect(.degrees(-12 + blobOffset3 * 0.1))
                 .blur(radius: 30)
-                .offset(x: 180, y: 280)
+                .offset(x: 180 + blobOffset3 * 0.4, y: 280 + blobOffset3 * 0.2)
                 .offset(x: animateGradient ? 30 : -30, y: animateGradient ? -15 : 15)
                 .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animateGradient)
+                .animation(.easeInOut(duration: 40).repeatForever(autoreverses: true), value: blobOffset3)
         }
         .onAppear {
             animateGradient = true
+            
+            // Start slow background movements with slight delays for natural feel
+            withAnimation(.easeInOut(duration: 20).repeatForever(autoreverses: true).delay(0)) {
+                backgroundOffset = 1
+            }
+            
+            withAnimation(.easeInOut(duration: 30).repeatForever(autoreverses: true).delay(2)) {
+                blobOffset1 = 1
+            }
+            
+            withAnimation(.easeInOut(duration: 35).repeatForever(autoreverses: true).delay(4)) {
+                blobOffset2 = 1
+            }
+            
+            withAnimation(.easeInOut(duration: 40).repeatForever(autoreverses: true).delay(6)) {
+                blobOffset3 = 1
+            }
         }
     }
 }
