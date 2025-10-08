@@ -13,84 +13,69 @@ struct RandomContactView: View {
     @State private var showSettings = false
     @State private var showNotificationPrompt = false
     @State private var hasShownFirstSpinPrompt = UserDefaults.standard.bool(forKey: "hasShownFirstSpinPrompt")
-    @State private var cardFlip = false
     @State private var isSpinning = false
-    @State private var spinAngle: Double = 0
-    @Environment(\.horizontalSizeClass) private var hSize
-
-    private var isCompact: Bool { hSize == .compact }
-    private var avatarSize: CGFloat { isCompact ? 64 : 80 }
+    @State private var conversationStarter: String = ConversationStarters.random()
+    @State private var showConversationStarter = false
 
     var body: some View {
         NavigationStack {
             ZStack {
-                LiquidGlassBackground()
+                ClaudeBackground()
 
                 ScrollView {
-                    VStack(spacing: 22) {
+                    VStack(spacing: 28) {
                         header
-                            .padding(.top, 12)
-                            .centerColumnAdaptive()
+                            .claudeColumnLayout()
+                            .padding(.top, 20)
 
                         if vm.isLoading {
-                            ProgressView().controlSize(.large)
-                                .tint(.white)
-                                .padding(.top, 40)
-                                .centerColumnAdaptive()
+                            ProgressView()
+                                .controlSize(.large)
+                                .tint(ClaudeColors.claudeOrange)
+                                .padding(.top, 60)
                         } else if let msg = vm.statusMessage {
-                            GlassCard {
-                                VStack(spacing: 12) {
-                                    Text(msg)
-                                        .font(.title3.weight(.semibold))
-                                        .multilineTextAlignment(.center)
-                                        .foregroundStyle(.white.opacity(0.9))
-                                    Button {
-                                        vm.openAppSettings()
-                                    } label: {
-                                        Label("Fix in Settings", systemImage: "gear")
-                                    }
-                                    .glass()
-                                }
-                            }
-                            .centerColumnAdaptive()
-                        } else if let c = vm.current {
-                            contactCard(c)
-                                .centerColumnAdaptive()
-                                .rotation3DEffect(.degrees(cardFlip ? 180 : 0), axis: (x: 0, y: 1, z: 0))
-                                .rotationEffect(.degrees(isSpinning ? spinAngle : 0))
-                                .scaleEffect(isSpinning ? 0.95 : 1.0)
-                                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: cardFlip)
-                                .animation(.easeInOut(duration: 0.3), value: isSpinning)
+                            errorCard(message: msg)
+                                .claudeColumnLayout()
+                        } else if isSpinning {
+                            // Show logo loading animation
+                            LogoLoadingView()
+                                .claudeColumnLayout()
+                                .padding(.top, 40)
+                                .padding(.bottom, 40)
+                        } else if let contact = vm.current {
+                            contactCard(contact)
+                                .claudeColumnLayout()
+                                .transition(.scale.combined(with: .opacity))
 
-                            controls(for: c)
-                                .centerColumnAdaptive()
-                            
-                            smartSuggestions
-                                .centerColumnAdaptive()
+                            actionButtons(for: contact)
+                                .claudeColumnLayout()
                         } else {
-                            GlassCard {
-                                VStack(spacing: 10) {
-                                    Text("Ready to reconnect?")
-                                        .font(.title2.weight(.bold))
-                                        .foregroundStyle(.white.opacity(0.95))
-                                    Text("Tap Spin to get your first contact.")
-                                        .foregroundStyle(.white.opacity(0.8))
-                                }
-                            }
-                            .centerColumnAdaptive()
+                            emptyStateCard
+                                .claudeColumnLayout()
                         }
 
-                        Spacer(minLength: 24)
+                        Spacer(minLength: 40)
                     }
-                    .safeAreaPadding(.vertical, 10)
-                    .dynamicTypeSize(.xSmall ... .accessibility2)
+                    .padding(.vertical, 20)
                 }
             }
-            .toolbar { topToolbar }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    ClaudeIconButton(icon: "chart.bar.fill") {
+                        showAnalytics = true
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    ClaudeIconButton(icon: "gearshape.fill") {
+                        showSettings = true
+                    }
+                }
+            }
         }
-        .task { 
+        .task {
             await vm.bootstrap()
             await subscriptionManager.updateSubscriptionStatus()
         }
@@ -108,7 +93,6 @@ struct RandomContactView: View {
                 Task {
                     let granted = await notificationManager.requestAuthorization()
                     if !granted {
-                        // User denied, optionally show settings
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             notificationManager.openSettings()
                         }
@@ -121,244 +105,369 @@ struct RandomContactView: View {
         }
     }
 
-    // MARK: - UI chunks
+    // MARK: - Header
 
     private var header: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 16) {
+            // App title
             Text("InTouch")
-                .font(.system(size: 34, weight: .heavy, design: .rounded))
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
-            
+                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .foregroundStyle(ClaudeColors.charcoal)
+
+            // TESTING: Hide spin counter
+            // Spin counter or upgrade prompt
             if !subscriptionManager.isSubscribed {
                 let remaining = subscriptionManager.remainingFreeSpins()
                 if remaining > 0 {
-                    Text("\(remaining) free spins remaining today")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.black)
+                    VStack(spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 8))
+                                .foregroundStyle(ClaudeColors.claudeOrange)
+
+                            Text("\(remaining) spin\(remaining == 1 ? "" : "s") left")
+                                .font(ClaudeTypography.calloutFont)
+                                .foregroundStyle(ClaudeColors.darkGray)
+                        }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         .background(
                             Capsule()
-                                .fill(.white.opacity(0.95))
+                                .fill(ClaudeColors.claudeOrange.opacity(0.1))
                                 .overlay(
                                     Capsule()
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        .stroke(ClaudeColors.claudeOrange.opacity(0.3), lineWidth: 1)
                                 )
                         )
-                        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+
+                        if let nextRefill = subscriptionManager.nextRefillTime() {
+                            Text("Next refill: \(formatRefillTime(nextRefill))")
+                                .font(ClaudeTypography.captionFont)
+                                .foregroundStyle(ClaudeColors.mediumGray)
+                        }
+                    }
                 } else {
-                    Button {
-                        showPaywall = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "crown.fill")
-                            Text("Upgrade for unlimited spins")
+                    VStack(spacing: 12) {
+                        Text("Out of spins")
+                            .font(ClaudeTypography.calloutFont)
+                            .foregroundStyle(ClaudeColors.darkGray)
+
+                        if let nextRefill = subscriptionManager.nextRefillTime() {
+                            Text("Refills at \(formatRefillTime(nextRefill))")
+                                .font(ClaudeTypography.captionFont)
+                                .foregroundStyle(ClaudeColors.mediumGray)
                         }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            LinearGradient(colors: [
-                                Color.blue,
-                                Color.purple
-                            ], startPoint: .leading, endPoint: .trailing),
-                            in: Capsule()
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
-                    }
-                }
-            }
-        }
-    }
 
-
-    private func contactCard(_ c: ContactRecord) -> some View {
-        let primary = vm.primaryPhone(for: c)
-
-        return GlassCard {
-            VStack(alignment: .leading, spacing: 18) {
-                // Header with options button
-                HStack {
-                    Spacer()
-                    Button {
-                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                        withAnimation(.easeInOut) { vm.excludeCurrent() }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.white)
-                            .background(
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                                    )
-                                    .frame(width: 32, height: 32)
-                            )
-                            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
-                    }
-                }
-
-                // Use horizontal layout when it truly fits; otherwise vertical.
-                ViewThatFits(in: .horizontal) {
-
-                    // HORIZONTAL
-                    HStack(alignment: .center, spacing: 20) {
-                        ContactAvatarView(fullName: c.fullName, imagePNG: c.imagePNG, size: avatarSize + 8)
-                        nameAndPrimary(c: c, primary: primary)
-                            .layoutPriority(1) // prefer text to compress avatar
-                        Spacer(minLength: 0)
-                    }
-
-                    // VERTICAL
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Spacer()
-                            ContactAvatarView(fullName: c.fullName, imagePNG: c.imagePNG, size: avatarSize + 16)
-                            Spacer()
-                        }
-                        nameAndPrimary(c: c, primary: primary)
-                    }
-                }
-
-                // Extra numbers listed vertically (full numbers)
-                let extra = Array(c.phones.dropFirst())
-                if !extra.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(extra) { e in
+                        Button {
+                            showPaywall = true
+                        } label: {
                             HStack(spacing: 8) {
-                                if let label = e.label { GlassChip(text: label.capitalized) }
-                                Text(format(phone: e.number))
-                                    .foregroundStyle(.white)
-                                    .font(.subheadline.weight(.semibold))
-                                    .lineLimit(1)
-                                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
-                                    .shadow(color: .black.opacity(0.2), radius: 3, y: 1.5)
+                                Image(systemName: "crown.fill")
+                                Text("Get Unlimited")
                             }
                         }
+                        .claudePrimaryButton()
                     }
+                    .padding(.top, 8)
                 }
             }
         }
     }
 
-    private func nameAndPrimary(c: ContactRecord, primary: LabeledPhone?) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(c.fullName)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
-                .lineLimit(2)                 // wrap instead of overflow
-                .minimumScaleFactor(0.85)
-                .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
-                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+    // MARK: - Contact Card
 
-            if let p = primary {
-                HStack(spacing: 8) {
-                    Text(format(phone: p.number))
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
-                        .shadow(color: .black.opacity(0.2), radius: 3, y: 1.5)
-                    if let label = p.label {
-                        GlassChip(text: label.capitalized)
+    private func contactCard(_ contact: ContactRecord) -> some View {
+        let primary = vm.primaryPhone(for: contact)
+
+        return VStack(spacing: 24) {
+            // Avatar
+            ContactAvatarView(
+                fullName: contact.fullName,
+                imagePNG: contact.imagePNG,
+                size: 120
+            )
+            .shadow(color: ClaudeColors.shadow, radius: 12, x: 0, y: 4)
+
+            // Name and phone
+            VStack(spacing: 12) {
+                Text(contact.fullName)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(ClaudeColors.charcoal)
+                    .multilineTextAlignment(.center)
+
+                if let phone = primary {
+                    VStack(spacing: 8) {
+                        Text(formatPhone(phone.number))
+                            .font(ClaudeTypography.title3Font)
+                            .foregroundStyle(ClaudeColors.mediumGray)
+
+                        if let label = phone.label {
+                            ClaudeBadge(label.capitalized, color: ClaudeColors.claudeOrange)
+                        }
                     }
                 }
             }
+
+            // Additional phones
+            let extraPhones = Array(contact.phones.dropFirst())
+            if !extraPhones.isEmpty {
+                VStack(alignment: .center, spacing: 10) {
+                    ForEach(extraPhones) { phone in
+                        HStack(spacing: 12) {
+                            if let label = phone.label {
+                                ClaudeBadge(label.capitalized, color: ClaudeColors.mediumGray)
+                            }
+                            Text(formatPhone(phone.number))
+                                .font(ClaudeTypography.subheadlineFont)
+                                .foregroundStyle(ClaudeColors.darkGray)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            // Conversation starter
+            if showConversationStarter {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(ClaudeColors.claudeOrange)
+                        Text("Conversation Starter")
+                            .font(ClaudeTypography.captionFont)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(ClaudeColors.darkGray)
+                    }
+
+                    Text("\"\(conversationStarter)\"")
+                        .font(ClaudeTypography.calloutFont)
+                        .foregroundStyle(ClaudeColors.charcoal)
+                        .italic()
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        withAnimation(.easeInOut) {
+                            conversationStarter = ConversationStarters.random()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12))
+                            Text("Get another idea")
+                                .font(ClaudeTypography.footnoteFont)
+                        }
+                        .foregroundStyle(ClaudeColors.claudeOrange)
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(ClaudeColors.claudeOrange.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(ClaudeColors.claudeOrange.opacity(0.2), lineWidth: 1)
+                        )
+                )
+            } else {
+                Button {
+                    withAnimation(.easeInOut) {
+                        showConversationStarter = true
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 14))
+                        Text("Need a conversation starter?")
+                            .font(ClaudeTypography.footnoteFont)
+                    }
+                    .foregroundStyle(ClaudeColors.claudeOrange)
+                }
+            }
+
+            // Exclude button
+            Button {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                withAnimation(.easeInOut) { vm.excludeCurrent() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                    Text("Exclude from future spins")
+                        .font(ClaudeTypography.footnoteFont)
+                }
+                .foregroundStyle(ClaudeColors.warmRed)
+            }
         }
+        .claudeCardHighlight(padding: 32)
     }
 
-    private func controls(for c: ContactRecord) -> some View {
-        let primary = vm.primaryPhone(for: c)?.number
+    // MARK: - Action Buttons
 
-        return VStack(spacing: 16) {
-            HStack(spacing: 16) {
+    private func actionButtons(for contact: ContactRecord) -> some View {
+        let primary = vm.primaryPhone(for: contact)?.number
+
+        return VStack(spacing: 12) {
+            HStack(spacing: 12) {
                 Button {
                     guard let n = primary else { return }
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.9)
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     vm.call(number: n)
                 } label: {
-                    Label("Call", systemImage: "phone.fill")
+                    HStack {
+                        Image(systemName: "phone.fill")
+                        Text("Call")
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .glassProminent()
+                .claudePrimaryButton()
 
                 Button {
                     guard let n = primary else { return }
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.9)
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     if MFMessageComposeViewController.canSendText() {
                         showSMS = true
                     } else {
                         vm.textFallbackURL(number: n)
                     }
                 } label: {
-                    Label("Text", systemImage: "bubble.left.and.bubble.right.fill")
+                    HStack {
+                        Image(systemName: "message.fill")
+                        Text("Text")
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .glass()
+                .claudeSecondaryButton()
                 .sheet(isPresented: $showSMS) {
-                    if let n = vm.primaryPhone(for: c)?.number {
+                    if let n = vm.primaryPhone(for: contact)?.number {
                         MessageComposer(recipients: [n]).ignoresSafeArea()
                     }
                 }
             }
 
-            Button { spinWithFX() } label: {
-                Label("Spin Again", systemImage: "shuffle")
+            Button {
+                spinWithAnimation()
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                    Text("Spin Again")
+                }
+                .frame(maxWidth: .infinity)
             }
-            .glass()
+            .claudeGhostButton()
         }
     }
 
-    private func spinWithFX() {
-        // Check if user can spin
+    // MARK: - Empty State
+
+    private var emptyStateCard: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "person.2.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(ClaudeColors.claudeOrange)
+
+            Text("Ready to reconnect?")
+                .font(ClaudeTypography.title2Font)
+                .foregroundStyle(ClaudeColors.charcoal)
+
+            Text("Tap the button below to discover who you should reach out to today.")
+                .font(ClaudeTypography.bodyFont)
+                .foregroundStyle(ClaudeColors.mediumGray)
+                .multilineTextAlignment(.center)
+
+            Button {
+                spinWithAnimation()
+            } label: {
+                HStack {
+                    Image(systemName: "sparkles")
+                    Text("Spin the Wheel")
+                }
+            }
+            .claudePrimaryButton()
+            .padding(.top, 8)
+        }
+        .claudeCard(padding: 40)
+    }
+
+    // MARK: - Error Card
+
+    private func errorCard(message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(ClaudeColors.warmRed)
+
+            Text(message)
+                .font(ClaudeTypography.bodyFont)
+                .foregroundStyle(ClaudeColors.charcoal)
+                .multilineTextAlignment(.center)
+
+            Button {
+                vm.openAppSettings()
+            } label: {
+                HStack {
+                    Image(systemName: "gear")
+                    Text("Open Settings")
+                }
+            }
+            .claudeSecondaryButton()
+        }
+        .claudeCard(padding: 32)
+    }
+
+    // MARK: - Spin Animation
+
+    private func spinWithAnimation() {
         guard subscriptionManager.canSpin() else {
             showPaywall = true
             return
         }
 
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 1.0)
-
-        // Record the spin for usage tracking
+        // Initial haptic
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         subscriptionManager.recordSpin()
 
-        // Start spinning animation
-        withAnimation(.easeInOut(duration: 0.1)) {
+        // Start metronome animation
+        withAnimation(.easeInOut(duration: 0.3)) {
             isSpinning = true
         }
 
-        // Rotate multiple times during spin
-        withAnimation(.linear(duration: 0.8)) {
-            spinAngle += 720 // Two full rotations
+        // Mid-animation haptic (1.25s is the metronome cycle)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.25) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
 
-        cardFlip.toggle()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                vm.spin()
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                cardFlip.toggle()
-                // Stop spinning animation
-                withAnimation(.easeOut(duration: 0.2)) {
-                    isSpinning = false
-                    spinAngle = 0
-                }
+        // Actually pick the contact mid-animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            vm.spin()
 
-                // Show notification prompt after first spin (if not already shown)
-                if !hasShownFirstSpinPrompt && !notificationManager.isAuthorized {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showNotificationPrompt = true
-                        hasShownFirstSpinPrompt = true
-                        UserDefaults.standard.set(true, forKey: "hasShownFirstSpinPrompt")
-                    }
+            // Reset conversation starter for new contact
+            conversationStarter = ConversationStarters.random()
+            showConversationStarter = false
+        }
+
+        // End animation with success haptic (2.5 seconds total)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                isSpinning = false
+            }
+
+            // Show notification prompt after first spin
+            if !hasShownFirstSpinPrompt && !notificationManager.isAuthorized {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showNotificationPrompt = true
+                    hasShownFirstSpinPrompt = true
+                    UserDefaults.standard.set(true, forKey: "hasShownFirstSpinPrompt")
                 }
             }
         }
     }
 
-    private func format(phone: String) -> String {
+    // MARK: - Helper
+
+    private func formatPhone(_ phone: String) -> String {
         let d = phone
         if d.count == 10 {
             let a = d.prefix(3), b = d.dropFirst(3).prefix(3), c = d.suffix(4)
@@ -367,94 +476,23 @@ struct RandomContactView: View {
         return d
     }
 
-    // MARK: - Smart Suggestions
-    
-    private var smartSuggestions: some View {
-        let analytics = ContactAnalytics.shared
-        let suggestions = analytics.getSmartSuggestions()
-        
-        if suggestions.isEmpty {
-            return AnyView(EmptyView())
-        }
-        
-        return AnyView(
-            VStack(spacing: 8) {
-                let top = Array(suggestions.prefix(2))
-                ForEach(top.indices, id: \.self) { idx in
-                    SmartSuggestionBanner(suggestion: top[idx])
-                }
-            }
-        )
-    }
-    
-    private var topToolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            HStack(spacing: 16) {
-                Button {
-                    showAnalytics = true
-                } label: {
-                    Image(systemName: "chart.bar.fill")
-                        .foregroundStyle(.white)
-                }
+    private func formatRefillTime(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let now = Date()
 
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .foregroundStyle(.white)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Smart Suggestion Banner
-
-struct SmartSuggestionBanner: View {
-    let suggestion: ContactAnalytics.SmartSuggestion
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: suggestionIcon)
-                .font(.title3)
-                .foregroundStyle(suggestionColor)
-            
-            Text(suggestion.message)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.leading)
-                .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
-                .shadow(color: .black.opacity(0.3), radius: 3, y: 1.5)
-            
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(suggestionColor.opacity(0.2))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(suggestionColor.opacity(0.5), lineWidth: 1.5)
-                )
-        )
-        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-    }
-    
-    private var suggestionIcon: String {
-        switch suggestion.type {
-        case .longTimeNoSee: return "clock.fill"
-        case .maintainStreak: return "flame.fill"
-        case .monthlyGoal: return "target"
-        case .birthday: return "gift.fill"
-        }
-    }
-    
-    private var suggestionColor: Color {
-        switch suggestion.priority {
-        case .high: return .red
-        case .medium: return .orange
-        case .low: return .blue
+        if calendar.isDateInToday(date) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        } else if calendar.isDateInTomorrow(date) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "tomorrow at \(formatter.string(from: date))"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
         }
     }
 }

@@ -22,7 +22,8 @@ final class SubscriptionManager {
     // Usage tracking
     private let dailySpinsKey = "dailySpinsCount"
     private let lastResetDateKey = "lastResetDate"
-    private let maxFreeSpins = 3
+    private let lastResetPeriodKey = "lastResetPeriod" // "morning" or "afternoon"
+    private let maxFreeSpins = 3 // 3 spins per period (morning and afternoon)
     
     enum SubscriptionStatus {
         case unknown
@@ -95,19 +96,35 @@ final class SubscriptionManager {
         if isSubscribed {
             return true
         }
-        
-        let today = Calendar.current.startOfDay(for: Date())
-        let lastReset = UserDefaults.standard.object(forKey: lastResetDateKey) as? Date ?? Date.distantPast
-        let lastResetDay = Calendar.current.startOfDay(for: lastReset)
-        
-        // Reset daily count if it's a new day
-        if today > lastResetDay {
-            UserDefaults.standard.set(0, forKey: dailySpinsKey)
-            UserDefaults.standard.set(today, forKey: lastResetDateKey)
-        }
-        
+
+        // Check if we need to reset spins based on time period
+        checkAndResetSpins()
+
         let currentSpins = UserDefaults.standard.integer(forKey: dailySpinsKey)
         return currentSpins < maxFreeSpins
+    }
+
+    private func checkAndResetSpins() {
+        let now = Date()
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: now)
+
+        // Determine current period: morning (7am-3:59pm) or afternoon (4pm-6:59am next day)
+        let currentPeriod: String
+        if hour >= 7 && hour < 16 {
+            currentPeriod = "morning"
+        } else {
+            currentPeriod = "afternoon"
+        }
+
+        let lastResetPeriod = UserDefaults.standard.string(forKey: lastResetPeriodKey) ?? ""
+
+        // Reset spins if we've entered a new period
+        if lastResetPeriod != currentPeriod {
+            UserDefaults.standard.set(0, forKey: dailySpinsKey)
+            UserDefaults.standard.set(currentPeriod, forKey: lastResetPeriodKey)
+            UserDefaults.standard.set(now, forKey: lastResetDateKey)
+        }
     }
     
     func recordSpin() {
@@ -119,9 +136,40 @@ final class SubscriptionManager {
     
     func remainingFreeSpins() -> Int {
         guard !isSubscribed else { return -1 } // Unlimited
-        
+
+        checkAndResetSpins()
         let currentSpins = UserDefaults.standard.integer(forKey: dailySpinsKey)
         return max(0, maxFreeSpins - currentSpins)
+    }
+
+    func nextRefillTime() -> Date? {
+        guard !isSubscribed else { return nil }
+
+        let now = Date()
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: now)
+
+        var components = calendar.dateComponents([.year, .month, .day], from: now)
+
+        // If before 7am, next refill is 7am today
+        if hour < 7 {
+            components.hour = 7
+            components.minute = 0
+            return calendar.date(from: components)
+        }
+        // If between 7am-3:59pm, next refill is 4pm today
+        else if hour >= 7 && hour < 16 {
+            components.hour = 16
+            components.minute = 0
+            return calendar.date(from: components)
+        }
+        // If after 4pm, next refill is 7am tomorrow
+        else {
+            components.day! += 1
+            components.hour = 7
+            components.minute = 0
+            return calendar.date(from: components)
+        }
     }
     
     func resetDailySpins() {

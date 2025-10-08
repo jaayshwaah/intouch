@@ -46,7 +46,7 @@ final class RandomContactViewModel {
             loadPersistedState()
             scrubInvalidIDs()
             rebuildRemainingIfNeeded()
-            if current == nil { spin() }
+            // Don't auto-spin - let user tap the button
         } catch ContactFetcher.FetchError.unauthorized {
             statusMessage = "Please allow Contacts access in Settings to use the app."
         } catch ContactFetcher.FetchError.noContacts {

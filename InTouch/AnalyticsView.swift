@@ -3,28 +3,28 @@ import SwiftUI
 struct AnalyticsView: View {
     @State private var analytics = ContactAnalytics.shared
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                LiquidGlassBackground()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        monthlyStats
-                        
-                        achievements
-                        
-                        topContacts
-                        
-                        rareContacts
-                        
-                        smartSuggestions
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 40)
+            ScrollView {
+                VStack(spacing: 24) {
+                    monthlyStats
+                        .claudeColumnLayout()
+
+                    achievements
+                        .claudeColumnLayout()
+
+                    topContacts
+                        .claudeColumnLayout()
+
+                    rareContacts
+                        .claudeColumnLayout()
+
+                    Spacer(minLength: 40)
                 }
+                .padding(.vertical, 20)
             }
+            .background(ClaudeBackground().ignoresSafeArea())
             .navigationTitle("Analytics")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -32,400 +32,308 @@ struct AnalyticsView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundStyle(.white)
+                    .font(ClaudeTypography.calloutFont)
+                    .foregroundStyle(ClaudeColors.claudeOrange)
                 }
             }
         }
     }
-    
+
     // MARK: - Monthly Stats
-    
+
     private var monthlyStats: some View {
         let stats = analytics.getMonthlyStats()
-        
-        return GlassCard {
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "chart.bar.fill")
-                        .font(.title2)
-                        .foregroundStyle(.blue)
-                    
-                    Text("This Month")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                    
-                    Spacer()
-                }
-                
-                HStack(spacing: 20) {
-                    StatCard(
-                        title: "Contacts",
-                        value: "\(stats.totalContacts)",
-                        subtitle: "Total",
-                        color: .blue
-                    )
-                    
-                    StatCard(
-                        title: "People",
-                        value: "\(stats.uniqueContacts)",
-                        subtitle: "Unique",
-                        color: .green
-                    )
-                    
-                    StatCard(
-                        title: "Goal",
-                        value: "\(stats.goal)",
-                        subtitle: stats.isGoalMet ? "Met! 🎉" : "Remaining: \(stats.goal - stats.totalContacts)",
-                        color: stats.isGoalMet ? .green : .orange
-                    )
-                }
-                
-                if !stats.isGoalMet {
-                    ProgressView(value: Double(stats.totalContacts), total: Double(stats.goal))
-                        .tint(.blue)
-                        .scaleEffect(y: 2)
-                }
-            }
-        }
-    }
-    
-    // MARK: - Achievements
-    
-    private var achievements: some View {
-        let unlockedAchievements = analytics.getUnlockedAchievements()
-        
-        return GlassCard {
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "trophy.fill")
-                        .font(.title2)
-                        .foregroundStyle(.yellow)
-                    
-                    Text("Achievements")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                    
-                    Spacer()
-                    
-                    Text("\(unlockedAchievements.count)")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.white.opacity(0.2), in: Capsule())
-                }
-                
-                if unlockedAchievements.isEmpty {
-                    Text("Complete contacts to unlock achievements!")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                } else {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                        ForEach(unlockedAchievements.prefix(6)) { achievement in
-                            AchievementCard(achievement: achievement)
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - Top Contacts
-    
-    private var topContacts: some View {
-        let topContacts = analytics.getTopContacts(limit: 5)
-        
-        return GlassCard {
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "person.3.fill")
-                        .font(.title2)
-                        .foregroundStyle(.purple)
-                    
-                    Text("Most Contacted")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                    
-                    Spacer()
-                }
-                
-                if topContacts.isEmpty {
-                    Text("Start making contacts to see your top people!")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                } else {
-                    ForEach(Array(topContacts.enumerated()), id: \.element.contactId) { index, contact in
-                        ContactStatRow(
-                            rank: index + 1,
-                            name: contact.contactName,
-                            count: contact.totalContacts,
-                            streak: contact.streak
-                        )
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - Rare Contacts
-    
-    private var rareContacts: some View {
-        let rareContacts = analytics.getRareContacts()
-        
-        return GlassCard {
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "clock.fill")
-                        .font(.title2)
-                        .foregroundStyle(.orange)
-                    
-                    Text("Haven't Talked In A While")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                    
-                    Spacer()
-                }
-                
-                if rareContacts.isEmpty {
-                    Text("Great job staying in touch with everyone!")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                } else {
-                    ForEach(Array(rareContacts.prefix(3).enumerated()), id: \.offset) { _, contact in
-                        RareContactRow(contact: contact)
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - Smart Suggestions
-    
-    private var smartSuggestions: some View {
-        let suggestions = analytics.getSmartSuggestions()
-        
-        return GlassCard {
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.title2)
-                        .foregroundStyle(.yellow)
-                    
-                    Text("Smart Suggestions")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                    
-                    Spacer()
-                }
-                
-                if suggestions.isEmpty {
-                    Text("Keep making contacts for personalized suggestions!")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                } else {
-                    ForEach(Array(suggestions.prefix(3).enumerated()), id: \.offset) { _, suggestion in
-                        SuggestionRow(suggestion: suggestion)
-                    }
-                }
-            }
-        }
-    }
-}
 
-// MARK: - Supporting Views
+        return VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(ClaudeColors.claudeOrange)
+                Text("This Month")
+                    .font(ClaudeTypography.title2Font)
+                    .foregroundStyle(ClaudeColors.charcoal)
+            }
 
-struct StatCard: View {
-    let title: String
-    let value: String
-    let subtitle: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                statCard(
+                    value: "\(stats.uniqueContacts)",
+                    label: "Unique Contacts",
+                    icon: "person.fill"
+                )
+
+                statCard(
+                    value: "\(stats.totalContacts)",
+                    label: "Total Interactions",
+                    icon: "bubble.left.and.bubble.right.fill"
+                )
+            }
+
+            // Goal Progress
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Monthly Goal")
+                        .font(ClaudeTypography.calloutFont)
+                        .foregroundStyle(ClaudeColors.charcoal)
+                    Spacer()
+                    Text("\(stats.totalContacts)/\(stats.goal)")
+                        .font(ClaudeTypography.calloutFont)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(stats.isGoalMet ? ClaudeColors.softGreen : ClaudeColors.claudeOrange)
+                }
+
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(ClaudeColors.border)
+                            .frame(height: 12)
+
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: stats.isGoalMet ?
+                                        [ClaudeColors.softGreen, ClaudeColors.softGreen.opacity(0.7)] :
+                                        [ClaudeColors.claudeOrange, ClaudeColors.claudeOrangeDark],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(
+                                width: min(CGFloat(stats.totalContacts) / CGFloat(stats.goal), 1.0) * geometry.size.width,
+                                height: 12
+                            )
+                    }
+                }
+                .frame(height: 12)
+            }
+        }
+        .claudeCard(padding: 24)
+    }
+
+    private func statCard(value: String, label: String, icon: String) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 28))
+                .foregroundStyle(ClaudeColors.claudeOrange)
+
             Text(value)
-                .font(.title.weight(.bold))
-                .foregroundStyle(.white)
-            
-            Text(title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
-            
-            Text(subtitle)
-                .font(.caption)
-                .foregroundStyle(color)
+                .font(.system(size: 32, weight: .bold))
+                .foregroundStyle(ClaudeColors.charcoal)
+
+            Text(label)
+                .font(ClaudeTypography.captionFont)
+                .foregroundStyle(ClaudeColors.mediumGray)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.white.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
-                )
+        .padding(20)
+        .background(ClaudeColors.warmWhite)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(ClaudeColors.border, lineWidth: 1)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
-}
 
-struct AchievementCard: View {
-    let achievement: ContactAnalytics.Achievement
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: achievement.icon)
-                .font(.title2)
-                .foregroundStyle(.yellow)
-            
-            Text(achievement.title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-            
-            Text(achievement.description)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
+    // MARK: - Achievements
+
+    private var achievements: some View {
+        let unlocked = analytics.getUnlockedAchievements()
+
+        if unlocked.isEmpty {
+            return AnyView(EmptyView())
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.white.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.yellow.opacity(0.3), lineWidth: 1)
-                )
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(ClaudeColors.claudeOrange)
+                    Text("Achievements")
+                        .font(ClaudeTypography.title2Font)
+                        .foregroundStyle(ClaudeColors.charcoal)
+                }
+
+                VStack(spacing: 12) {
+                    ForEach(Array(unlocked.prefix(5))) { achievement in
+                        achievementRow(achievement)
+                    }
+                }
+            }
+            .claudeCard(padding: 24)
         )
     }
-}
 
-struct ContactStatRow: View {
-    let rank: Int
-    let name: String
-    let count: Int
-    let streak: Int
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Text("\(rank)")
-                .font(.headline.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 24, height: 24)
-                .background(.white.opacity(0.2), in: Circle())
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                
-                Text("\(count) contacts")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+    private func achievementRow(_ achievement: ContactAnalytics.Achievement) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: achievement.icon)
+                .font(.system(size: 24))
+                .foregroundStyle(ClaudeColors.claudeOrange)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle()
+                        .fill(ClaudeColors.claudeOrange.opacity(0.1))
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(achievement.title)
+                    .font(ClaudeTypography.calloutFont)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(ClaudeColors.charcoal)
+
+                Text(achievement.description)
+                    .font(ClaudeTypography.footnoteFont)
+                    .foregroundStyle(ClaudeColors.mediumGray)
             }
-            
+
             Spacer()
-            
-            if streak > 0 {
+        }
+    }
+
+    // MARK: - Top Contacts
+
+    private var topContacts: some View {
+        let top = analytics.getTopContacts(limit: 5)
+
+        if top.isEmpty {
+            return AnyView(EmptyView())
+        }
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(ClaudeColors.claudeOrange)
+                    Text("Top Contacts")
+                        .font(ClaudeTypography.title2Font)
+                        .foregroundStyle(ClaudeColors.charcoal)
+                }
+
+                VStack(spacing: 12) {
+                    ForEach(Array(top.enumerated()), id: \.element.contactId) { index, contact in
+                        contactFrequencyRow(contact, rank: index + 1)
+                    }
+                }
+            }
+            .claudeCard(padding: 24)
+        )
+    }
+
+    // MARK: - Rare Contacts
+
+    private var rareContacts: some View {
+        let rare = Array(analytics.getRareContacts().prefix(5))
+
+        if rare.isEmpty {
+            return AnyView(EmptyView())
+        }
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(ClaudeColors.warmRed)
+                    Text("Haven't Connected Recently")
+                        .font(ClaudeTypography.title2Font)
+                        .foregroundStyle(ClaudeColors.charcoal)
+                }
+
+                Text("These contacts haven't appeared in your spins for over 30 days")
+                    .font(ClaudeTypography.subheadlineFont)
+                    .foregroundStyle(ClaudeColors.mediumGray)
+
+                VStack(spacing: 12) {
+                    ForEach(rare, id: \.contactId) { contact in
+                        rareContactRow(contact)
+                    }
+                }
+            }
+            .claudeCard(padding: 24)
+        )
+    }
+
+    // MARK: - Row Components
+
+    private func contactFrequencyRow(_ frequency: ContactAnalytics.ContactFrequency, rank: Int) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(ClaudeColors.claudeOrange.opacity(0.1))
+                    .frame(width: 36, height: 36)
+
+                Text("\(rank)")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(ClaudeColors.claudeOrange)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(frequency.contactName)
+                    .font(ClaudeTypography.calloutFont)
+                    .foregroundStyle(ClaudeColors.charcoal)
+
+                Text("\(frequency.totalContacts) interactions")
+                    .font(ClaudeTypography.footnoteFont)
+                    .foregroundStyle(ClaudeColors.mediumGray)
+            }
+
+            Spacer()
+
+            if frequency.streak > 0 {
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                    
-                    Text("\(streak)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 14))
+                        .foregroundStyle(ClaudeColors.claudeOrange)
+                    Text("\(frequency.streak)")
+                        .font(ClaudeTypography.captionFont)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(ClaudeColors.claudeOrange)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.orange.opacity(0.2), in: Capsule())
-            }
-        }
-    }
-}
-
-struct RareContactRow: View {
-    let contact: ContactAnalytics.ContactFrequency
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "person.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.orange)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(contact.contactName)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                
-                if let lastContact = contact.lastContact {
-                    let daysSince = Calendar.current.dateComponents([.day], from: lastContact, to: Date()).day ?? 0
-                    Text("\(daysSince) days ago")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-            }
-            
-            Spacer()
-            
-            Button("Reach Out") {
-                // This would trigger a contact action
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(.orange, in: Capsule())
-        }
-    }
-}
-
-struct SuggestionRow: View {
-    let suggestion: ContactAnalytics.SmartSuggestion
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: suggestionIcon)
-                .font(.title3)
-                .foregroundStyle(suggestionColor)
-            
-            Text(suggestion.message)
-                .font(.subheadline)
-                .foregroundStyle(.white)
-            
-            Spacer()
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(suggestionColor.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(suggestionColor.opacity(0.3), lineWidth: 1)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(ClaudeColors.claudeOrange.opacity(0.1))
                 )
+            }
+        }
+        .padding(14)
+        .background(ClaudeColors.warmWhite)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(ClaudeColors.border, lineWidth: 1)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
-    
-    private var suggestionIcon: String {
-        switch suggestion.type {
-        case .longTimeNoSee: return "clock.fill"
-        case .maintainStreak: return "flame.fill"
-        case .monthlyGoal: return "target"
-        case .birthday: return "gift.fill"
-        }
-    }
-    
-    private var suggestionColor: Color {
-        switch suggestion.priority {
-        case .high: return .red
-        case .medium: return .orange
-        case .low: return .blue
-        }
-    }
-}
 
-#Preview {
-    AnalyticsView()
+    private func rareContactRow(_ frequency: ContactAnalytics.ContactFrequency) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 32))
+                .foregroundStyle(ClaudeColors.mediumGray)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(frequency.contactName)
+                    .font(ClaudeTypography.calloutFont)
+                    .foregroundStyle(ClaudeColors.charcoal)
+
+                if let lastContact = frequency.lastContact {
+                    let days = Calendar.current.dateComponents([.day], from: lastContact, to: Date()).day ?? 0
+                    Text("\(days) days ago")
+                        .font(ClaudeTypography.footnoteFont)
+                        .foregroundStyle(ClaudeColors.warmRed)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .background(ClaudeColors.warmWhite)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(ClaudeColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
 }

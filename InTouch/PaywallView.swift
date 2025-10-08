@@ -8,345 +8,322 @@ struct PaywallView: View {
     @State private var isPurchasing = false
     @State private var showError = false
     @State private var errorMessage = ""
-    
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                LiquidGlassBackground()
-                
-                ScrollView {
-                    VStack(spacing: 32) {
-                        header
-                        
-                        features
-                        
-                        pricing
-                        
-                        benefits
-                        
-                        buttons
-                        
-                        footer
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 40)
+            ScrollView {
+                VStack(spacing: 32) {
+                    header
+                        .claudeColumnLayout()
+
+                    features
+                        .claudeColumnLayout()
+
+                    pricing
+                        .claudeColumnLayout()
+
+                    purchaseButton
+                        .claudeColumnLayout()
+
+                    footer
+                        .claudeColumnLayout()
+
+                    Spacer(minLength: 40)
                 }
+                .padding(.vertical, 20)
             }
+            .background(ClaudeBackground().ignoresSafeArea())
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(ClaudeColors.mediumGray)
                     }
-                    .foregroundStyle(.white)
                 }
             }
         }
-        .task {
-            await subscriptionManager.loadProducts()
-        }
-        .alert("Purchase Error", isPresented: $showError) {
-            Button("OK") { }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
     }
-    
+
     // MARK: - Header
-    
+
     private var header: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "crown.fill")
-                .font(.system(size: 60))
+                .font(.system(size: 56))
                 .foregroundStyle(
-                    LinearGradient(colors: [
-                        Color.yellow,
-                        Color.orange
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    LinearGradient(
+                        colors: [ClaudeColors.claudeOrange, ClaudeColors.claudeOrangeDark],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                 )
-                .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
-            
+
             Text("Unlock Premium")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-            
-            Text("Get unlimited spins and premium features")
-                .font(.title3)
-                .foregroundStyle(.white.opacity(0.8))
+                .font(.system(size: 34, weight: .bold))
+                .foregroundStyle(ClaudeColors.charcoal)
+
+            Text("Stay connected with unlimited spins and powerful features")
+                .font(ClaudeTypography.bodyFont)
+                .foregroundStyle(ClaudeColors.mediumGray)
                 .multilineTextAlignment(.center)
         }
     }
-    
+
     // MARK: - Features
-    
+
     private var features: some View {
         VStack(spacing: 16) {
-            FeatureRow(icon: "infinity", title: "Unlimited Spins", description: "Spin as much as you want")
-            FeatureRow(icon: "person.2.fill", title: "Advanced Filtering", description: "Filter by relationship, last contact")
-            FeatureRow(icon: "chart.bar.fill", title: "Contact Analytics", description: "See your connection patterns")
-            FeatureRow(icon: "bell.fill", title: "Smart Reminders", description: "Never lose touch again")
-            FeatureRow(icon: "paintbrush.fill", title: "Custom Themes", description: "Personalize your experience")
+            featureRow(
+                icon: "infinity.circle.fill",
+                title: "Unlimited Spins",
+                description: "Spin as many times as you want, every day"
+            )
+
+            featureRow(
+                icon: "bell.badge.fill",
+                title: "Multiple Reminders",
+                description: "Set multiple daily notifications (coming soon)"
+            )
+
+            featureRow(
+                icon: "person.3.fill",
+                title: "Custom Lists",
+                description: "Create custom contact groups (coming soon)"
+            )
+
+            featureRow(
+                icon: "chart.line.uptrend.xyaxis.circle.fill",
+                title: "Advanced Analytics",
+                description: "Deep insights into your connection patterns"
+            )
         }
     }
-    
+
+    private func featureRow(icon: String, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 28))
+                .foregroundStyle(ClaudeColors.claudeOrange)
+                .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(ClaudeTypography.calloutFont)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(ClaudeColors.charcoal)
+
+                Text(description)
+                    .font(ClaudeTypography.subheadlineFont)
+                    .foregroundStyle(ClaudeColors.mediumGray)
+            }
+
+            Spacer()
+        }
+        .padding(20)
+        .background(ClaudeColors.warmWhite)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(ClaudeColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
     // MARK: - Pricing
-    
+
     private var pricing: some View {
-        VStack(spacing: 16) {
-            Text("Choose Your Plan")
-                .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
-            
-            if let monthly = subscriptionManager.getMonthlyProduct(),
-               let yearly = subscriptionManager.getYearlyProduct() {
-                
-                VStack(spacing: 12) {
-                    // Yearly Plan (Recommended)
-                    PricingCard(
-                        product: yearly,
-                        isRecommended: true,
-                        isSelected: selectedProduct?.id == yearly.id
-                    ) {
-                        selectedProduct = yearly
-                    }
-                    
-                    // Monthly Plan
-                    PricingCard(
-                        product: monthly,
-                        isRecommended: false,
-                        isSelected: selectedProduct?.id == monthly.id
-                    ) {
-                        selectedProduct = monthly
-                    }
-                }
-                
-                if let savings = subscriptionManager.getYearlySavings() {
-                    Text(savings)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.green)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.green.opacity(0.2), in: Capsule())
-                }
-            } else {
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.2)
-            }
-        }
-    }
-    
-    // MARK: - Benefits
-    
-    private var benefits: some View {
-        GlassCard {
-            VStack(spacing: 12) {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Cancel anytime")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                    Spacer()
-                }
-                
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("7-day free trial")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                    Spacer()
-                }
-                
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Family sharing included")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                    Spacer()
-                }
-            }
-        }
-    }
-    
-    // MARK: - Buttons
-    
-    private var buttons: some View {
         VStack(spacing: 12) {
-            Button {
-                Task {
-                    await purchaseSelected()
+            if let monthly = subscriptionManager.getMonthlyProduct() {
+                pricingCard(
+                    product: monthly,
+                    title: "Monthly",
+                    description: "Billed monthly",
+                    isPopular: false
+                )
+            }
+
+            if let yearly = subscriptionManager.getYearlyProduct() {
+                pricingCard(
+                    product: yearly,
+                    title: "Yearly",
+                    description: "Best value - save 30%",
+                    isPopular: true
+                )
+            }
+
+            if subscriptionManager.availableProducts.isEmpty {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .tint(ClaudeColors.claudeOrange)
+                    Text("Loading premium options...")
+                        .font(ClaudeTypography.calloutFont)
+                        .foregroundStyle(ClaudeColors.mediumGray)
                 }
+                .padding(32)
+            }
+        }
+    }
+
+    private func pricingCard(product: Product, title: String, description: String, isPopular: Bool) -> some View {
+        Button {
+            selectedProduct = product
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text(title)
+                            .font(ClaudeTypography.title3Font)
+                            .foregroundStyle(ClaudeColors.charcoal)
+
+                        if isPopular {
+                            ClaudeBadge("Popular", color: ClaudeColors.claudeOrange)
+                        }
+                    }
+
+                    Text(description)
+                        .font(ClaudeTypography.subheadlineFont)
+                        .foregroundStyle(ClaudeColors.mediumGray)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(product.displayPrice)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(ClaudeColors.charcoal)
+
+                    if let savings = subscriptionManager.getYearlySavings(), title == "Yearly" {
+                        Text(savings)
+                            .font(ClaudeTypography.captionFont)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(ClaudeColors.softGreen)
+                    }
+                }
+
+                Image(systemName: selectedProduct == product ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 24))
+                    .foregroundStyle(selectedProduct == product ? ClaudeColors.claudeOrange : ClaudeColors.lightGray)
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(selectedProduct == product ?
+                        ClaudeColors.claudeOrange.opacity(0.08) :
+                        ClaudeColors.warmWhite
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        selectedProduct == product ?
+                            ClaudeColors.claudeOrange :
+                            ClaudeColors.border,
+                        lineWidth: selectedProduct == product ? 2 : 1
+                    )
+            )
+        }
+    }
+
+    // MARK: - Purchase Button
+
+    private var purchaseButton: some View {
+        VStack(spacing: 16) {
+            Button {
+                purchaseSelected()
             } label: {
                 HStack {
                     if isPurchasing {
                         ProgressView()
                             .tint(.white)
-                            .scaleEffect(0.8)
                     } else {
                         Image(systemName: "crown.fill")
+                        Text("Start Premium")
                     }
-                    Text(isPurchasing ? "Processing..." : "Start Free Trial")
-                        .font(.headline.weight(.semibold))
                 }
-                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(colors: [
-                        Color.blue,
-                        Color.purple
-                    ], startPoint: .leading, endPoint: .trailing)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
             }
+            .claudePrimaryButton()
             .disabled(selectedProduct == nil || isPurchasing)
-            
+            .opacity((selectedProduct == nil || isPurchasing) ? 0.6 : 1.0)
+
             Button {
-                Task {
-                    await subscriptionManager.restorePurchases()
-                    if subscriptionManager.isSubscribed {
-                        dismiss()
-                    }
-                }
+                restorePurchases()
             } label: {
                 Text("Restore Purchases")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(ClaudeTypography.calloutFont)
+                    .foregroundStyle(ClaudeColors.claudeOrange)
+            }
+            .disabled(isPurchasing)
+        }
+    }
+
+    // MARK: - Footer
+
+    private var footer: some View {
+        VStack(spacing: 12) {
+            Text("Subscriptions auto-renew unless cancelled 24 hours before the end of the current period.")
+                .font(ClaudeTypography.footnoteFont)
+                .foregroundStyle(ClaudeColors.mediumGray)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 16) {
+                Link("Terms", destination: URL(string: "https://intouch.app/terms")!)
+                    .font(ClaudeTypography.footnoteFont)
+                    .foregroundStyle(ClaudeColors.claudeOrange)
+
+                Text("•")
+                    .foregroundStyle(ClaudeColors.lightGray)
+
+                Link("Privacy", destination: URL(string: "https://intouch.app/privacy")!)
+                    .font(ClaudeTypography.footnoteFont)
+                    .foregroundStyle(ClaudeColors.claudeOrange)
             }
         }
     }
-    
-    // MARK: - Footer
-    
-    private var footer: some View {
-        VStack(spacing: 8) {
-            Text("Terms of Service • Privacy Policy")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
-                .multilineTextAlignment(.center)
+
+    // MARK: - Actions
+
+    private func purchaseSelected() {
+        guard let product = selectedProduct else { return }
+
+        Task {
+            isPurchasing = true
+            defer { isPurchasing = false }
+
+            do {
+                let transaction = try await subscriptionManager.purchase(product)
+                if transaction != nil {
+                    dismiss()
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
         }
     }
-    
-    // MARK: - Actions
-    
-    private func purchaseSelected() async {
-        guard let product = selectedProduct else { return }
-        
-        isPurchasing = true
-        defer { isPurchasing = false }
-        
-        do {
-            let _ = try await subscriptionManager.purchase(product)
+
+    private func restorePurchases() {
+        Task {
+            isPurchasing = true
+            defer { isPurchasing = false }
+
+            await subscriptionManager.restorePurchases()
+
             if subscriptionManager.isSubscribed {
                 dismiss()
+            } else {
+                errorMessage = "No previous purchases found"
+                showError = true
             }
-        } catch {
-            errorMessage = error.localizedDescription
-            showError = true
         }
     }
-}
-
-// MARK: - Supporting Views
-
-struct FeatureRow: View {
-    let icon: String
-    let title: String
-    let description: String
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(
-                    LinearGradient(colors: [
-                        Color.blue,
-                        Color.purple
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-                .frame(width: 30)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            
-            Spacer()
-        }
-    }
-}
-
-struct PricingCard: View {
-    let product: Product
-    let isRecommended: Bool
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(product.displayName)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(.white)
-                        
-                        if isRecommended {
-                            Text("BEST VALUE")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.yellow, in: Capsule())
-                        }
-                    }
-                    
-                    Text(priceText)
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                }
-                
-                Spacer()
-                
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isSelected ? .blue : .white.opacity(0.5))
-            }
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(
-                                isSelected ? Color.blue : Color.white.opacity(0.2),
-                                lineWidth: isSelected ? 2 : 1
-                            )
-                    )
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private var priceText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.locale = product.priceFormatStyle.locale
-        let number = NSDecimalNumber(decimal: product.price)
-        return formatter.string(from: number) ?? product.displayPrice
-    }
-}
-
-#Preview {
-    PaywallView()
 }
