@@ -7,9 +7,11 @@ import Observation
 final class SubscriptionManager {
     static let shared = SubscriptionManager()
     
-    // Product IDs - you'll need to configure these in App Store Connect
-    private let monthlyProductID = "com.yourcompany.intouch.premium.monthly"
-    private let yearlyProductID = "com.yourcompany.intouch.premium.yearly"
+    // Product IDs - IMPORTANT: Update these to match your App Store Connect configuration
+    // Format: com.yourcompany.intouch.premium.monthly and com.yourcompany.intouch.premium.yearly
+    // See SETUP.md for instructions on configuring in-app purchases
+    private let monthlyProductID = "com.joshking.InTouch.premium.monthly"
+    private let yearlyProductID = "com.joshking.InTouch.premium.yearly"
     
     // Subscription state
     var isSubscribed = false
@@ -20,7 +22,7 @@ final class SubscriptionManager {
     // Usage tracking
     private let dailySpinsKey = "dailySpinsCount"
     private let lastResetDateKey = "lastResetDate"
-    private let maxFreeSpins = 5
+    private let maxFreeSpins = 3
     
     enum SubscriptionStatus {
         case unknown

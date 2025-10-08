@@ -4,11 +4,15 @@ import MessageUI
 struct RandomContactView: View {
     @State private var vm = RandomContactViewModel()
     @State private var subscriptionManager = SubscriptionManager.shared
+    @State private var notificationManager = NotificationManager.shared
     @State private var showManage = false
     @State private var showResetSeenAlert = false
     @State private var showSMS = false
     @State private var showPaywall = false
     @State private var showAnalytics = false
+    @State private var showSettings = false
+    @State private var showNotificationPrompt = false
+    @State private var hasShownFirstSpinPrompt = UserDefaults.standard.bool(forKey: "hasShownFirstSpinPrompt")
     @State private var cardFlip = false
     @State private var isSpinning = false
     @State private var spinAngle: Double = 0
@@ -95,6 +99,25 @@ struct RandomContactView: View {
         }
         .sheet(isPresented: $showAnalytics) {
             AnalyticsView()
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(viewModel: vm)
+        }
+        .alert("Stay Connected Daily?", isPresented: $showNotificationPrompt) {
+            Button("Enable Reminders") {
+                Task {
+                    let granted = await notificationManager.requestAuthorization()
+                    if !granted {
+                        // User denied, optionally show settings
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            notificationManager.openSettings()
+                        }
+                    }
+                }
+            }
+            Button("Not Now", role: .cancel) {}
+        } message: {
+            Text("Get a daily reminder at 7pm to stay in touch with your contacts")
         }
     }
 
@@ -294,22 +317,22 @@ struct RandomContactView: View {
             showPaywall = true
             return
         }
-        
+
         UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 1.0)
-        
+
         // Record the spin for usage tracking
         subscriptionManager.recordSpin()
-        
+
         // Start spinning animation
         withAnimation(.easeInOut(duration: 0.1)) {
             isSpinning = true
         }
-        
+
         // Rotate multiple times during spin
         withAnimation(.linear(duration: 0.8)) {
             spinAngle += 720 // Two full rotations
         }
-        
+
         cardFlip.toggle()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
@@ -321,6 +344,15 @@ struct RandomContactView: View {
                 withAnimation(.easeOut(duration: 0.2)) {
                     isSpinning = false
                     spinAngle = 0
+                }
+
+                // Show notification prompt after first spin (if not already shown)
+                if !hasShownFirstSpinPrompt && !notificationManager.isAuthorized {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showNotificationPrompt = true
+                        hasShownFirstSpinPrompt = true
+                        UserDefaults.standard.set(true, forKey: "hasShownFirstSpinPrompt")
+                    }
                 }
             }
         }
@@ -364,35 +396,12 @@ struct RandomContactView: View {
                     Image(systemName: "chart.bar.fill")
                         .foregroundStyle(.white)
                 }
-                
-                Menu {
-                    if subscriptionManager.isSubscribed {
-                        Button {
-                            // Open subscription management
-                            if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                                UIApplication.shared.open(url)
-                            }
-                        } label: {
-                            Label("Manage Subscription", systemImage: "crown.fill")
-                        }
-                    } else {
-                        Button { showPaywall = true } label: {
-                            Label("Upgrade to Premium", systemImage: "crown.fill")
-                        }
-                    }
-                    
-                    Toggle(isOn: Binding(get: { vm.noRepeatsEver }, set: { vm.setNoRepeatsEver($0) })) {
-                        Label("No repeats (ever)", systemImage: "infinity.circle")
-                    }
-                    Button { showManage = true } label: {
-                        Label("Manage Exclusions", systemImage: "person.crop.circle.badge.xmark")
-                    }
-                    Divider()
-                    Button(role: .destructive) { showResetSeenAlert = true } label: {
-                        Label("Clear 'Seen' History", systemImage: "clock.arrow.circlepath")
-                    }
+
+                Button {
+                    showSettings = true
                 } label: {
-                    Image(systemName: "gearshape").foregroundStyle(.white)
+                    Image(systemName: "gearshape")
+                        .foregroundStyle(.white)
                 }
             }
         }
