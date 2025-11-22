@@ -330,7 +330,7 @@ struct SettingsView: View {
                 ClaudeDivider()
 
                 Button {
-                    if let url = URL(string: "https://new-chat-g4rz.bolt.host/") {
+                    if let url = URL(string: "https://jaayshwaah.github.io/intouch/privacy") {
                         UIApplication.shared.open(url)
                     }
                 } label: {

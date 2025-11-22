@@ -114,7 +114,6 @@ struct RandomContactView: View {
                 .font(.system(size: 38, weight: .bold, design: .rounded))
                 .foregroundStyle(ClaudeColors.charcoal)
 
-            // TESTING: Hide spin counter
             // Spin counter or upgrade prompt
             if !subscriptionManager.isSubscribed {
                 let remaining = subscriptionManager.remainingFreeSpins()
